@@ -1,6 +1,6 @@
 /**
  * ChatServer - Server class
- * @author Ben Parker
+ * @author Waterlgndx
  * 05/20/2012
  * Server is a class that hosts the chat.  I admit it is probably a bit messy.  I also find it strange that I 
  * ended up using an Array of ThreadHandlers instead of a hash of some sort.  I would like to use a hash for
@@ -16,7 +16,6 @@ package net.dreamersnet.ChatServer;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
-import java.util.Iterator;
 
 /**
  * ThreadHandler : a class that handles threads for the sockets for connected user.  These threads handle
@@ -37,15 +36,44 @@ class ThreadHandler extends Thread {
 		n= v;
 	}
 	
+	//TODO: Change so that the Server side completely manages the user name after connection...
 	public void run()
 	{
 		try {
+			// prime the loop and get username and get myself added to the server...
+			//Read incoming message.  In future versions it will not be important
+			BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));			
+			//PrintWriter printWriter = new PrintWriter(socket.getOutputStream(),true);
+			message = bufferedReader.readLine();
+			if ((message.indexOf("!#@") >= 0) && (message.indexOf("!#@") < 4)) {					
+				String[] tmp = message.split("!#@",2);
+				message = tmp[1];
+				String[] tmp2 = message.split(" ",2);
+				userName = tmp2[0];
+				message = tmp2[1];
+				serv.sendCommand(userName, message);
+			} else {
+				String[] tmp = message.split(" ",2);
+				userName = tmp[0];
+				message = tmp[1];
+				if (message.length() > 0)
+				{
+					System.out.println("<" + userName + "> " + message);
+					//Respond to client echoing back the incoming client message		
+					serv.sendToAll(this);
+				}			
+			}
+
+			//add me
+			serv.addMe(this); 
+			
+			
+			// continue execution as normal...
 			while (!terminated) {
 				//Read incoming message.  In future versions it will not be important
-				BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));			
+				bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));			
 				//PrintWriter printWriter = new PrintWriter(socket.getOutputStream(),true);
-				message = bufferedReader.readLine();
-				System.out.println("Recieved : " + message);
+				message = bufferedReader.readLine();				
 				if ((message.indexOf("!#@") >= 0) && (message.indexOf("!#@") < 4)) {					
 					String[] tmp = message.split("!#@",2);
 					message = tmp[1];
@@ -67,7 +95,7 @@ class ThreadHandler extends Thread {
 			}			
 		} catch (IOException e) {
 			System.out.println("ThreadHandler exception occured : " + e);
-			System.out.println("Closing socket and attempting recovery");
+			System.out.println("Closing socket");
 			try {
 				socket.close(); 				
 				terminated = true;
@@ -76,14 +104,15 @@ class ThreadHandler extends Thread {
 			}
 			return;
 		}		
-		
 	}
 
+	public Socket getSocket()
+	{
+		return socket;
+	}
+	
 	public void sendMessage(String from, String msg)
 	{
-		System.out.println("To: " + userName);
-		System.out.println("From: " + from);
-		System.out.println("MSG: " + msg);
 		if (terminated) return;
 		try {
 			PrintWriter printWriter = new PrintWriter(socket.getOutputStream(),true);
@@ -95,6 +124,7 @@ class ThreadHandler extends Thread {
 			System.out.println("Message not sent, exception : " + e);
 			System.out.println("Closing socket and attempting recovery");
 			try {
+				serv.sendRawToAll(userName + " had their connection reset! ");
 				socket.close();
 				serv.removeThread(this);
 				terminated = true;
@@ -103,6 +133,14 @@ class ThreadHandler extends Thread {
 			}
 			return;
 		}
+	}
+	
+	//TODO: boolean setSocket() if host names match.
+	
+	public void setUserName(String newUserName)
+	{
+		this.userName = newUserName;
+		sendRaw("@#!set name " + this.userName);
 	}
 	
 	public String getMessage()
@@ -152,6 +190,7 @@ class ThreadHandler extends Thread {
 
 public class Server {
 	static ArrayList<ThreadHandler> threads = new ArrayList<ThreadHandler>();
+	static ArrayList<ThreadHandler> noCXNt = new ArrayList<ThreadHandler>(); //non connected threads
 	static Server serv = new Server();
 		
 	public static void main(String[] args) {
@@ -162,19 +201,41 @@ public class Server {
 				Socket socket = serverSocket.accept();				
 				//System.out.println("Creating a new thread ...");
 				Thread t = new ThreadHandler(serv, socket, ++nreq);
-				t.start();
-				ThreadHandler tempHandle = (ThreadHandler) t;
-				tempHandle.sendMessage("SERVER", "Welcome to home.dreamersnet.net!");
-				tempHandle.sendMessage("SERVER", "This is an experiemental chat server!");
-				tempHandle.sendMessage("SERVER", "Just added : /msg and /me commands");
-				tempHandle.sendMessage("SERVER", "If you see a name with [PM] that indicates it is a private message");
-				threads.add((ThreadHandler) t);
-				//String userName = ((ThreadHandler) t).getUserName();
+				t.start();				
+				noCXNt.add((ThreadHandler) t); // need to keep it in scope ?
 			}
 		} catch (IOException e) {
 			System.out.println("exception occured : " + e);
 			System.exit(-1);
 		}
+	}
+	
+	public synchronized void addMe(Thread t) {
+		ThreadHandler tempHandle = (ThreadHandler) t;
+		String attemptName = tempHandle.getUserName();
+		for (int i=0; i<threads.size(); i++) {
+			if (threads.get(i).getUserName().compareToIgnoreCase(attemptName)==0) {
+				System.out.println(attemptName + " is currently in use.");
+				//match found terminate session with reason.
+				tempHandle.sendMessage("SERVER", "This name is in use!!!  You will be disconnected!!");
+				tempHandle.sendMessage("SERVER", "This name is in use!!!  You will be disconnected!!");
+				//TODO: change it so client is given a chance to change their name
+				//      or if hosts match replace the old connection with the new one.
+				//      with setSocket.
+				tempHandle.terminate();				
+				System.out.println("Username "+ attemptName + " is a duplicated nickname from host: "+ tempHandle.getSocket().getInetAddress().getHostName());
+				noCXNt.remove(tempHandle);
+				return;
+			}											
+		}
+		threads.add(tempHandle);
+		noCXNt.remove(tempHandle);
+		tempHandle.sendMessage("SERVER", "Welcome to home.dreamersnet.net!");
+		tempHandle.sendMessage("SERVER", "This is an experiemental chat server!");
+		tempHandle.sendMessage("SERVER", "Just added : /msg and /me commands");
+		tempHandle.sendMessage("SERVER", "If you see a name with [PM] that indicates it is a private message");
+		
+		//String userName = ((ThreadHandler) t).getUserName();
 	}
 	
 	public synchronized void sendToAll(Thread t)
@@ -232,27 +293,46 @@ public class Server {
 	}
 	
 	public void sendCommand(String from, String command) 
-	{
-		System.out.println("sending command:" + command + " From: "+ from);
-		// NAME command
-		if (command.compareToIgnoreCase("names")== 0) {
+	{		
+		// NAMES, WHO command are currently the same thing
+		if ((command.compareToIgnoreCase("names")== 0) || (command.compareToIgnoreCase("who")==0)) {
 			sendNamesTo(from);
 			return;
 		}
 		String[] words = command.split(" ", 3);
-		// MSG , TELL commands  (many of my friends are ex-mmo players, adding these for ease)
-		if ((words[0].compareToIgnoreCase("msg")== 0) || (words[0].compareToIgnoreCase("tell")== 0)) {
-			System.out.println("Attempting to send Private Message to: " + words[1]);
-			Iterator<ThreadHandler> threadIter = threads.iterator();
-			
-			while (threadIter.hasNext()) {
-				ThreadHandler curThread = threadIter.next();
-				
-				if (curThread.getUserName().compareToIgnoreCase(words[1])==0) {
-					System.out.println("Matched username " + words[1] + " to:" + curThread.getName());
-					curThread.sendMessage("[PM] "+ from, words[2]);
+		// NICK, NICKNAME command
+		if ((words[0].compareToIgnoreCase("nickname")==0)||(words[0].compareToIgnoreCase("nick")==0)) {
+			boolean newNickOk = true;
+			int userThread = -1;
+			for (int i=0; i<threads.size(); i++)
+			{
+				if (threads.get(i).isClosed())
+					continue;
+				if (threads.get(i).getUserName().compareToIgnoreCase(words[1])==0) {
+					newNickOk = false;
 				}
+				else if (threads.get(i).getUserName().compareToIgnoreCase(from)==0)
+					userThread = i;
 			}
+			if ((newNickOk) && (userThread >= 0)) {
+				//change nick and let everyone know
+				threads.get(userThread).setUserName(words[1]);
+				sendRawToAll("*** "+ from + " is now known as " + words[1]);
+			} else {
+				threads.get(userThread).sendRaw("Nickname changed failed!  It appears it is already in use!");
+			}
+			return;
+		}
+		// MSG , TELL commands  (many of my friends are ex-mmo players, adding these for ease)
+		else if ((words[0].compareToIgnoreCase("msg")== 0) || (words[0].compareToIgnoreCase("tell")== 0)) {			
+			for (int i=0; i<threads.size(); i++) {
+				if (threads.get(i).isClosed())
+					continue;
+				if (threads.get(i).getUserName().compareToIgnoreCase(words[1])==0) {
+					threads.get(i).sendMessage("[PM] "+ from, words[2]);
+					return;
+				}				
+			}			
 		}
 		// ME , EMOTE commands
 		else if ((words[0].compareToIgnoreCase("me")== 0) || (words[0].compareToIgnoreCase("emote")== 0)) {
@@ -272,7 +352,4 @@ public class Server {
 			}			
 		}
 	}
-
-	
-	
 }

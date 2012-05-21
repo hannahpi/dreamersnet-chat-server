@@ -19,6 +19,10 @@ class InputHandler extends Thread
 		userName = name;
 	}
 	
+	//TODO: for duplicated nicknames there needs to be a way to negotiate
+	//      with server and establish a new nickname.  Need to be able to detect
+	//      signal when it needs changed though.  
+	
 	public void run() {
 		try {
 			while (!quit) {
@@ -46,9 +50,19 @@ class InputHandler extends Thread
 	}
 }
 
+/**
+ * Client - a class to connect to the simple chat server I'm designing.
+ * @author Waterlgndx
+ *
+ */
 public class Client {
+	//You may want to change this!!!
+	final static String DEFAULT_HOST = "localhost"; 
+	final static int DEFAULT_PORT = 4444;
+	//TODO: add a way to configure this ( Config file? ) 
 	static String name;
-	static String host="home.dreamersnet.net";
+	static String host= DEFAULT_HOST;
+	static int port= DEFAULT_PORT;
 	static Socket socket;
 	static int nreq = 0;
 	static Client cli = new Client();
@@ -56,12 +70,9 @@ public class Client {
 	static boolean quit = false;
 	
 	public static void main(String[] args) {
-		//For testing:
 		if (args.length>0)
 			name = args[0];
 		if (args.length==2) {
-			System.out.print("set name to:" + args[0]);
-			System.out.println("   set host to:" + args[1]);
 			host = args[1];
 		}
 		
@@ -77,14 +88,21 @@ public class Client {
 		
 		if ((args.length>=1) || (name.length()>1)) {
 			try {
-				socket = new Socket(host, 4444);
-				cli.sendRaw(name + " has connected!");
+				socket = new Socket(host, DEFAULT_PORT);
+				cli.sendRaw(name + " has connected!");				
 				conInThread = new InputHandler(cli, socket, ++nreq, name);
 				conInThread.start();
 				while (!quit)
 				{
 					BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-					System.out.println(bufferedReader.readLine());
+					String newLine = bufferedReader.readLine().trim();
+					if (newLine.startsWith("@#!set name")) {						
+						String[] words = newLine.split(" ",3); // .split ==> ,3) means 3 positions in array are created.
+						name = words[2];
+						continue;
+					} else { 
+						System.out.println(newLine);
+					}
 				}
 				socket.close();
 			} catch (Exception e) {
@@ -139,7 +157,7 @@ public class Client {
 		}
 		if (words[0].compareToIgnoreCase("quit")==0) {
 			try {
-				sendRaw("*** Client exiting: " + name + "Reason: " + words[1]);
+				sendRaw("*** Client exiting: " + name + " Reason: " + words[1]);
 				socket.close();
 			} catch (IOException e) {
 				System.out.println("Client Command Error occured: " + e);
