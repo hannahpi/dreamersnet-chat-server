@@ -12,8 +12,7 @@ public class AppWindow {
 	static Client cli;
 	private JFrame frame;
 	static private JTextPane txtChat = new JTextPane();
-	Style base = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
-	//Style base = StyleContext.getDefaultStyleConteTextPane txtChat;
+	//Style base = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
 	private JScrollPane scrollPane;
 	
 	
@@ -104,6 +103,11 @@ public class AppWindow {
 		txtEnter.setBackground(new Color(51, 51, 255));
 		txtEnter.setTabSize(20);
 		frame.getContentPane().add(txtEnter, BorderLayout.SOUTH);
+	}
+	
+	public String askString(String question, String title) {		
+		String answer = (String)JOptionPane.showInputDialog(frame, question);
+		return answer;
 	}
 	
 	public void print(String str) {

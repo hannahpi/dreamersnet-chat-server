@@ -1,60 +1,6 @@
 package net.dreamersnet.ChatServer;
 import java.io.*;
 import java.net.*;
-/**
- * removing
- * @author Gumba
- *
- *
-class InputHandler extends Thread
-{
-	int n;
-	Socket socket;
-	Client cli;
-	String message = "";
-	String userName;
-	boolean quit;
-	
-	InputHandler(Client cli, Socket s, int v, String name)
-	{
-		this.cli = cli;
-		socket=s;
-		n = v;
-		userName = name;
-	}
-	
-	//TODO: for duplicated nicknames there needs to be a way to negotiate
-	//      with server and establish a new nickname.  Need to be able to detect
-	//      signal when it needs changed though.  
-	
-	public void run() {
-		try {
-			while (!quit) {
-				BufferedReader consoleIn = new BufferedReader(new InputStreamReader(System.in));
-				String message = consoleIn.readLine();
-				if ((message.length()>0) && (message.indexOf("/") == 0)) {
-					message = message.substring(1);	
-					cli.sendCommand(message);
-				} else {
-					cli.sendMessage(message);
-				}
-			}
-				//output.println(message);
-			
-				/*BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				output.println(bufferedReader.readLine()); **
-		} catch (Exception e) {
-			System.out.println("IH(run) exception has occured : " + e);
-		}
-		
-	}
-	
-	public String getMessage() {
-		return message;
-	}
-}
-*/
-
 
 /**
  * Client - a class to connect to the simple chat server I'm designing.
@@ -64,18 +10,18 @@ class InputHandler extends Thread
 public class Client {
 	//You may want to change this!!!
 	final static String DEFAULT_HOST = "home.dreamersnet.net"; 
+	final static String DEFAULT_NAME = "Anonymous";
 	final static int DEFAULT_PORT = 4444;
 	//TODO: add a way to configure this ( Config file? ) 
 	static String name;
-	static String host= DEFAULT_HOST;
-	static int port= DEFAULT_PORT;
+	static String host;
+	static int port;
 	static Socket socket;
 	static int nreq = 0;
 	static Client cli = new Client();
 	static AppWindow app = new AppWindow(cli);
 	static Thread conInThread;
 	static boolean quit = false;
-	//static PrintStream output = new PrintStream(app.getOutputStream());
 	
 	Client () {
 	}
@@ -89,21 +35,23 @@ public class Client {
 		}
 		
 		if (args.length==0) {
-			app.print("Set Name: ");
-			try {
-				BufferedReader consoleIn = new BufferedReader(new InputStreamReader(System.in));
-				name = consoleIn.readLine();
-			} catch (IOException e) {
-				app.println("Unknown console error : " +e );
-			}
+			name = app.askString("Set Name: ", "Name");
+			host = app.askString("Connect to host? ( Press <enter> for home.dreamersnet.net ) ", "Connect");
 		}
+		
+		if (name.length()==0) {
+			name= DEFAULT_NAME;
+		}
+		
+		if (host.length()==0) {
+			host= DEFAULT_HOST;
+		}
+		
 		AppWindow.run();
 		if ((args.length>=1) || (name.length()>1)) {
 			try {
 				socket = new Socket(host, DEFAULT_PORT);
 				cli.sendRaw(name + " has connected!");				
-				//conInThread = new InputHandler(cli, socket, ++nreq, name);
-				//conInThread.start();
 				while (!quit)
 				{
 					BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -121,9 +69,7 @@ public class Client {
 				app.println("main exception has occured : " + e);
 				System.exit(1);
 			}	
-		} else {
-			app.println("Usage: Client <name>");
-		}
+		} 
 	}
 	
 	public void sendMessage(String msg)
