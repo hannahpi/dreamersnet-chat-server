@@ -1,7 +1,11 @@
 package net.dreamersnet.ChatServer;
 import java.io.*;
 import java.net.*;
-
+/**
+ * removing
+ * @author Gumba
+ *
+ *
 class InputHandler extends Thread
 {
 	int n;
@@ -35,10 +39,10 @@ class InputHandler extends Thread
 					cli.sendMessage(message);
 				}
 			}
-				//System.out.println(message);
+				//output.println(message);
 			
 				/*BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				System.out.println(bufferedReader.readLine());*/
+				output.println(bufferedReader.readLine()); **
 		} catch (Exception e) {
 			System.out.println("IH(run) exception has occured : " + e);
 		}
@@ -49,6 +53,8 @@ class InputHandler extends Thread
 		return message;
 	}
 }
+*/
+
 
 /**
  * Client - a class to connect to the simple chat server I'm designing.
@@ -57,7 +63,7 @@ class InputHandler extends Thread
  */
 public class Client {
 	//You may want to change this!!!
-	final static String DEFAULT_HOST = "localhost"; 
+	final static String DEFAULT_HOST = "home.dreamersnet.net"; 
 	final static int DEFAULT_PORT = 4444;
 	//TODO: add a way to configure this ( Config file? ) 
 	static String name;
@@ -66,9 +72,15 @@ public class Client {
 	static Socket socket;
 	static int nreq = 0;
 	static Client cli = new Client();
+	static AppWindow app = new AppWindow(cli);
 	static Thread conInThread;
 	static boolean quit = false;
+	//static PrintStream output = new PrintStream(app.getOutputStream());
 	
+	Client () {
+	}
+	
+		
 	public static void main(String[] args) {
 		if (args.length>0)
 			name = args[0];
@@ -77,21 +89,21 @@ public class Client {
 		}
 		
 		if (args.length==0) {
-			System.out.print("Set Name: ");
+			app.print("Set Name: ");
 			try {
 				BufferedReader consoleIn = new BufferedReader(new InputStreamReader(System.in));
 				name = consoleIn.readLine();
 			} catch (IOException e) {
-				System.out.println("Unknown console error : " +e );
+				app.println("Unknown console error : " +e );
 			}
 		}
-		
+		AppWindow.run();
 		if ((args.length>=1) || (name.length()>1)) {
 			try {
 				socket = new Socket(host, DEFAULT_PORT);
 				cli.sendRaw(name + " has connected!");				
-				conInThread = new InputHandler(cli, socket, ++nreq, name);
-				conInThread.start();
+				//conInThread = new InputHandler(cli, socket, ++nreq, name);
+				//conInThread.start();
 				while (!quit)
 				{
 					BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -101,16 +113,16 @@ public class Client {
 						name = words[2];
 						continue;
 					} else { 
-						System.out.println(newLine);
+						app.println(newLine);
 					}
 				}
 				socket.close();
 			} catch (Exception e) {
-				System.out.println("main exception has occured : " + e);
+				app.println("main exception has occured : " + e);
 				System.exit(1);
 			}	
 		} else {
-			System.err.println("Usage: Client <name>");
+			app.println("Usage: Client <name>");
 		}
 	}
 	
@@ -122,7 +134,7 @@ public class Client {
 			printWriter.println(name + " " + msg); // send it!
 			printWriter.flush();
 		} catch (IOException e) {
-			System.out.println("Client SendMessage Error occured: " + e);
+			app.println("Client SendMessage Error occured: " + e);
 			System.exit(1);
 		}
 	}
@@ -134,7 +146,7 @@ public class Client {
 			printWriter.println(raw); // send it!
 			printWriter.flush();
 		} catch (IOException e) {
-			System.out.println("Client SendMessage Error occured: " + e);
+			app.println("Client SendMessage Error occured: " + e);
 			System.exit(1);
 		}
 	}
@@ -146,7 +158,7 @@ public class Client {
 				quit = true;
 				socket.close();
 			} catch (IOException e) {
-				System.out.println("ClientCommand Error occured: " + e);
+				app.println("ClientCommand Error occured: " + e);
 				System.exit(1);
 			}		
 		} 
@@ -160,7 +172,7 @@ public class Client {
 				sendRaw("*** Client exiting: " + name + " Reason: " + words[1]);
 				socket.close();
 			} catch (IOException e) {
-				System.out.println("Client Command Error occured: " + e);
+				app.println("Client Command Error occured: " + e);
 				System.exit(1);
 			}
 		}

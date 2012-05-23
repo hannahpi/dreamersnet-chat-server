@@ -40,7 +40,7 @@ class ThreadHandler extends Thread {
 	public void run()
 	{
 		try {
-			// prime the loop and get username and get myself added to the server...
+			// prime the loop and get user name and get myself added to the server...
 			//Read incoming message.  In future versions it will not be important
 			BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));			
 			//PrintWriter printWriter = new PrintWriter(socket.getOutputStream(),true);
@@ -60,7 +60,7 @@ class ThreadHandler extends Thread {
 				{
 					System.out.println("<" + userName + "> " + message);
 					//Respond to client echoing back the incoming client message		
-					serv.sendToAll(this);
+					serv.sendToAll(this, message);
 				}			
 			}
 
@@ -89,7 +89,7 @@ class ThreadHandler extends Thread {
 					{
 						System.out.println("<" + userName + "> " + message);
 						//Respond to client echoing back the incoming client message		
-						serv.sendToAll(this);
+						serv.sendToAll(this, message);
 					}			
 				}
 			}			
@@ -143,6 +143,11 @@ class ThreadHandler extends Thread {
 		sendRaw("@#!set name " + this.userName);
 	}
 	
+	/**
+	 * Deprecated
+	 * @return message
+	 * this will be removed in next update because of its unreliability.
+	 */
 	public String getMessage()
 	{
 		return message;
@@ -211,9 +216,14 @@ public class Server {
 	}
 	
 	public synchronized void addMe(Thread t) {
+		ArrayList<Thread> toRemove = new ArrayList<Thread>();
 		ThreadHandler tempHandle = (ThreadHandler) t;
 		String attemptName = tempHandle.getUserName();
 		for (int i=0; i<threads.size(); i++) {
+			if (threads.get(i).isClosed()) {
+				toRemove.add(threads.get(i));
+				continue;
+			}
 			if (threads.get(i).getUserName().compareToIgnoreCase(attemptName)==0) {
 				System.out.println(attemptName + " is currently in use.");
 				//match found terminate session with reason.
@@ -232,17 +242,18 @@ public class Server {
 		noCXNt.remove(tempHandle);
 		tempHandle.sendMessage("SERVER", "Welcome to home.dreamersnet.net!");
 		tempHandle.sendMessage("SERVER", "This is an experiemental chat server!");
+		for (int i=0; i<toRemove.size();i++)
+			removeThread(threads.get(i));
 		tempHandle.sendMessage("SERVER", "Just added : /msg and /me commands");
 		tempHandle.sendMessage("SERVER", "If you see a name with [PM] that indicates it is a private message");
 		
 		//String userName = ((ThreadHandler) t).getUserName();
 	}
 	
-	public synchronized void sendToAll(Thread t)
+	public synchronized void sendToAll(Thread t, String msg)
 	{
 		String userName = ((ThreadHandler) t).getUserName();
-		//send same message to everyone
-		String msg = ((ThreadHandler) t).getMessage();
+		//send same message to everyone		
 		if (msg.length() > 0) {			
 			for (int i=0; i<threads.size(); i++) {
 				if (threads.get(i).isClosed())
