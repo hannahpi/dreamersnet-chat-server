@@ -51,6 +51,7 @@ public class Client {
 		if ((args.length>=1) || (name.length()>1)) {
 			try {
 				socket = new Socket(host, DEFAULT_PORT);
+				socket.setKeepAlive(true);
 				cli.sendRaw(name + " has connected!");				
 				while (!quit)
 				{
@@ -63,10 +64,14 @@ public class Client {
 					} else { 
 						app.println(newLine);
 					}
+					System.out.println("Socket \n Closed: " + socket.isClosed() + "\n InputFailure: " + socket.isInputShutdown() + "\n Connected:" + socket.isConnected());
 				}
+				System.out.println("Socket \n Closed: " + socket.isClosed() + "\n InputFailure: " + socket.isInputShutdown() + "\n Connected:" + socket.isConnected());
+				System.out.println("System exiting...");
 				socket.close();
 			} catch (Exception e) {
-				app.println("main exception has occured : " + e);
+				System.out.println("main exception has occured : " + e);
+				app.println("main exception has occured : " + e);				
 				System.exit(1);
 			}	
 		} 

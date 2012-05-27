@@ -12,12 +12,10 @@ public class AppWindow {
 	static Client cli;
 	private JFrame frame;
 	static private JTextPane txtChat = new JTextPane();
+	static private Document doc = txtChat.getDocument();
 	//Style base = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
 	private JScrollPane scrollPane;
 	
-	
-	
-
 	/**
 	 * Launch the application.
 	 */
@@ -57,6 +55,7 @@ public class AppWindow {
 		//output = new PrintStream(new ChatOutput(txtChat));
 		initialize();
 		cli = c;
+		
 	}
 
 	public OutputStream getOutputStream() {
@@ -71,6 +70,7 @@ public class AppWindow {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		final JTextArea txtEnter = new JTextArea();
+		txtEnter.setFont(new Font("Monospaced", Font.PLAIN, 20));
 		txtEnter.setRows(1);
 		txtEnter.addKeyListener(new KeyAdapter() {
 			@Override
@@ -93,6 +93,7 @@ public class AppWindow {
 		txtEnter.setBackground(new Color(51, 51, 255));
 		txtEnter.setTabSize(20);
 		frame.getContentPane().add(txtEnter, BorderLayout.SOUTH);
+		txtChat.setFont(new Font("Tahoma", Font.PLAIN, 18));
 		
 		txtChat.setForeground(new Color(255, 255, 240));
 		txtChat.setEditable(false);
@@ -103,6 +104,8 @@ public class AppWindow {
 		txtEnter.setBackground(new Color(51, 51, 255));
 		txtEnter.setTabSize(20);
 		frame.getContentPane().add(txtEnter, BorderLayout.SOUTH);
+		txtEnter.grabFocus();
+		
 	}
 	
 	public String askString(String question, String title) {		
@@ -111,18 +114,22 @@ public class AppWindow {
 	}
 	
 	public void print(String str) {
-		Document doc = txtChat.getDocument();
+		
 		try {
 			doc.insertString(doc.getLength(), str, null);
-		} catch (Exception e) { System.out.println("txt Print error : " + e); }
+		} catch (Exception e) { 
+			System.out.println("txt Print error : " + e); 
+		}
 		txtChat.setCaretPosition(doc.getLength());	
 	}
 	
 	public void println(String str) {
-		Document doc = txtChat.getDocument();
+		//Document doc = txtChat.getDocument();
 		try {
 			doc.insertString(doc.getLength(), str + "\n", null);
-		} catch (Exception e) { System.out.println("txt Print error : " + e); }
+		} catch (Exception e) {
+			System.out.println("txt Print error : " + e); 
+		}
 		txtChat.setCaretPosition(doc.getLength());
 	}
 

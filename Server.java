@@ -287,7 +287,7 @@ public class Server {
 		threads.remove(t);
 	}
 	
-	private void sendNamesTo(String from) {
+	private synchronized void sendNamesTo(String from) {
 		String toSend = "";
 		int nameCt = 0;
 		int memory = -1;
@@ -303,7 +303,7 @@ public class Server {
 			threads.get(memory).sendRaw("* There are "+ nameCt +" users logged in : " + toSend);		
 	}
 	
-	public void sendCommand(String from, String command) 
+	public synchronized void sendCommand(String from, String command) 
 	{		
 		// NAMES, WHO command are currently the same thing
 		if ((command.compareToIgnoreCase("names")== 0) || (command.compareToIgnoreCase("who")==0)) {
@@ -335,15 +335,23 @@ public class Server {
 			return;
 		}
 		// MSG , TELL commands  (many of my friends are ex-mmo players, adding these for ease)
-		else if ((words[0].compareToIgnoreCase("msg")== 0) || (words[0].compareToIgnoreCase("tell")== 0)) {			
+		else if ((words[0].compareToIgnoreCase("msg")== 0) || (words[0].compareToIgnoreCase("tell")== 0)) {		
+			boolean sent = false;
+			int fromUser = -1;
 			for (int i=0; i<threads.size(); i++) {
 				if (threads.get(i).isClosed())
 					continue;
 				if (threads.get(i).getUserName().compareToIgnoreCase(words[1])==0) {
 					threads.get(i).sendMessage("[PM] "+ from, words[2]);
-					return;
-				}				
-			}			
+					sent = true;
+				}
+				if (threads.get(i).getUserName().compareToIgnoreCase(from)==0)
+					fromUser = i;								
+			} //end for loop
+			if ((fromUser >= 0) && sent) {
+				threads.get(fromUser).sendMessage("Sent PM["+ words[1] + "]", ": " + words[2]);
+			}
+			return;
 		}
 		// ME , EMOTE commands
 		else if ((words[0].compareToIgnoreCase("me")== 0) || (words[0].compareToIgnoreCase("emote")== 0)) {
