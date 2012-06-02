@@ -11,6 +11,7 @@ public class Client {
 	//You may want to change this!!!
 	final static String DEFAULT_HOST = "home.dreamersnet.net"; 
 	final static String DEFAULT_NAME = "Anonymous";
+	static int attempts = 0;
 	final static int DEFAULT_PORT = 4444;
 	//TODO: add a way to configure this ( Config file? ) 
 	static String name;
@@ -63,18 +64,31 @@ public class Client {
 						continue;
 					} else { 
 						app.println(newLine);
-					}
-					System.out.println("Socket \n Closed: " + socket.isClosed() + "\n InputFailure: " + socket.isInputShutdown() + "\n Connected:" + socket.isConnected());
-				}
-				System.out.println("Socket \n Closed: " + socket.isClosed() + "\n InputFailure: " + socket.isInputShutdown() + "\n Connected:" + socket.isConnected());
-				System.out.println("System exiting...");
-				socket.close();
+					}					
+				}				
+			} catch (SocketException sexc) {
+				repair();
+				System.out.println("main exception has occured : " + sexc);
+				app.println("main exception has occured : " + sexc);				
+				System.exit(1);
 			} catch (Exception e) {
 				System.out.println("main exception has occured : " + e);
-				app.println("main exception has occured : " + e);				
-				System.exit(1);
-			}	
+			}
 		} 
+	}
+	
+	private static void repair() {
+		if (attempts <= 10) {
+			System.out.println("Socket \n Closed: " + socket.isClosed() + "\n InputFailure: " + socket.isInputShutdown() + "\n Connected:" + socket.isConnected());
+			System.out.println("System exiting...");		
+			String[] send = (name + " "+ host).split(" ");
+			attempts++;
+			main(send);			
+		} else {
+			app.println("Number of attempts exceeds the limit!");
+			System.exit(1);
+		}
+			
 	}
 	
 	public void sendMessage(String msg)
@@ -105,7 +119,7 @@ public class Client {
 	public void sendCommand(String command) {
 		if (command.compareToIgnoreCase("quit")==0) {
 			try {
-				sendRaw("*** Client exiting: " + name + " QUIT. ");
+				sendRaw("!#@" + name + " " + command);
 				quit = true;
 				socket.close();
 			} catch (IOException e) {
@@ -117,15 +131,6 @@ public class Client {
 		if (words.length <= 1) {
 			sendRaw("!#@" + name + " " + command);
 			return;
-		}
-		if (words[0].compareToIgnoreCase("quit")==0) {
-			try {
-				sendRaw("*** Client exiting: " + name + " Reason: " + words[1]);
-				socket.close();
-			} catch (IOException e) {
-				app.println("Client Command Error occured: " + e);
-				System.exit(1);
-			}
 		}
 		else {
 			sendRaw("!#@" + name + " " + words[0] + " " + words[1]);			

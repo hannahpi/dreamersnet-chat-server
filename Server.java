@@ -40,7 +40,7 @@ class ThreadHandler extends Thread {
 	public void run()
 	{
 		try {
-			// prime the loop and get user name and get myself added to the server...
+			// prime the loop and get user name and get client added to the server...
 			//Read incoming message.  In future versions it will not be important
 			BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));			
 			//PrintWriter printWriter = new PrintWriter(socket.getOutputStream(),true);
@@ -109,6 +109,10 @@ class ThreadHandler extends Thread {
 	public Socket getSocket()
 	{
 		return socket;
+	}
+	
+	public void setSocket(Socket s) {
+		socket = s;
 	}
 	
 	public void sendMessage(String from, String msg)
@@ -188,7 +192,12 @@ class ThreadHandler extends Thread {
 	
 	public void terminate()
 	{
-		terminated = true;		
+		terminated = true;
+		try {
+			socket.close();
+		} catch ( Exception e) {
+			System.out.println("Error terminating socket for " + userName + ": "+ e);
+		}
 	}
 	
 }
@@ -204,7 +213,6 @@ public class Server {
 			ServerSocket serverSocket = new ServerSocket(4444);
 			for (;;) {
 				Socket socket = serverSocket.accept();				
-				//System.out.println("Creating a new thread ...");
 				Thread t = new ThreadHandler(serv, socket, ++nreq);
 				t.start();				
 				noCXNt.add((ThreadHandler) t); // need to keep it in scope ?
@@ -227,15 +235,28 @@ public class Server {
 			if (threads.get(i).getUserName().compareToIgnoreCase(attemptName)==0) {
 				System.out.println(attemptName + " is currently in use.");
 				//match found terminate session with reason.
-				tempHandle.sendMessage("SERVER", "This name is in use!!!  You will be disconnected!!");
-				tempHandle.sendMessage("SERVER", "This name is in use!!!  You will be disconnected!!");
-				//TODO: change it so client is given a chance to change their name
-				//      or if hosts match replace the old connection with the new one.
-				//      with setSocket.
-				tempHandle.terminate();				
-				System.out.println("Username "+ attemptName + " is a duplicated nickname from host: "+ tempHandle.getSocket().getInetAddress().getHostName());
-				noCXNt.remove(tempHandle);
-				return;
+				if (threads.get(i).getSocket().getInetAddress().toString().compareToIgnoreCase(tempHandle.getSocket().getInetAddress().toString())==0) {  
+					// if addresses match replace old session
+					tempHandle.sendMessage("SERVER", "This name is in use, but your host matches, replacing session.");
+					threads.get(i).sendMessage("SERVER", "We believe you have been a ghosted user, killing your session.");
+					threads.get(i).setSocket(tempHandle.getSocket());
+					tempHandle.terminate();
+					System.out.println("Username "+ attemptName + " is a duplicated nickname from host: "+ tempHandle.getSocket().getInetAddress().getHostName());
+					System.out.println("Server detected the host to be a match from it's previous connection so has replaced the connection with the current one");
+					noCXNt.remove(tempHandle);
+					return;
+				} else {
+					tempHandle.sendMessage("SERVER", "This name is in use!!!  You will be disconnected!!");
+					tempHandle.sendMessage("SERVER", "This name is in use!!!  You will be disconnected!!");
+					//TODO: change it so client is given a chance to change their name
+					//      or if hosts match replace the old connection with the new one.
+					//      with setSocket.
+					tempHandle.terminate();				
+					System.out.println("Username "+ attemptName + " is a duplicated nickname from host: "+ tempHandle.getSocket().getInetAddress().getHostName());
+					System.out.println("Original host is " + threads.get(i).getSocket().getInetAddress().getHostName());
+					noCXNt.remove(tempHandle);
+					return;
+				}
 			}											
 		}
 		threads.add(tempHandle);
@@ -305,12 +326,46 @@ public class Server {
 	
 	public synchronized void sendCommand(String from, String command) 
 	{		
+		// Make sure to return after performing the actions required for your command!
+		
 		// NAMES, WHO command are currently the same thing
 		if ((command.compareToIgnoreCase("names")== 0) || (command.compareToIgnoreCase("who")==0)) {
 			sendNamesTo(from);
 			return;
 		}
+		// QUIT command
+		if (command.compareToIgnoreCase("quit")==0) {
+			int userThread = -1;
+			for (int i=0; i<threads.size(); i++)
+			{
+				if (threads.get(i).getUserName().compareToIgnoreCase(from)==0)
+					userThread = i;
+			}
+			if ( userThread >= 0 ) {
+				sendRawToAll("*** Client exiting : " + from);
+				threads.get(userThread).terminate();
+				threads.remove(userThread);
+			}
+			return;				
+		}
+		//Multiple parameter commands:
 		String[] words = command.split(" ", 3);
+		
+		// QUIT with parameters
+		if (words[0].compareToIgnoreCase("quit")==0) {
+			int userThread = -1;
+			for (int i=0; i<threads.size(); i++)
+			{
+				if (threads.get(i).getUserName().compareToIgnoreCase(from)==0)
+					userThread = i;
+			}
+			if ( userThread >= 0 ) {
+				sendRawToAll("*** Client exiting : " + from + " with reason : " + words[1] + " " + words[2]);
+				threads.get(userThread).terminate();
+				threads.remove(userThread);
+			}
+			return;				
+		}
 		// NICK, NICKNAME command
 		if ((words[0].compareToIgnoreCase("nickname")==0)||(words[0].compareToIgnoreCase("nick")==0)) {
 			boolean newNickOk = true;
