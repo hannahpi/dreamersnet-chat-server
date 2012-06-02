@@ -115,7 +115,7 @@ class ThreadHandler extends Thread {
 		socket = s;
 	}
 	
-	public void sendMessage(String from, String msg)
+	public synchronized void sendMessage(String from, String msg)
 	{
 		if (terminated) return;
 		try {
