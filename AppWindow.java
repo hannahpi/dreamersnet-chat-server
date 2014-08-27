@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.OutputStream;
 import java.io.PrintStream;
+
 import javax.swing.*;
 import javax.swing.text.*;
 
@@ -19,27 +20,12 @@ public class AppWindow {
 	/**
 	 * Launch the application.
 	 */
-	public static void run(String[] args) {
+	public synchronized static void run() {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
 					AppWindow window = new AppWindow(cli);
-					window.frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
-
-	/**
-	 * Launch the application.
-	 */
-	public static void run() {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					AppWindow window = new AppWindow(cli);
+					window.initialize();
 					window.frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -61,76 +47,82 @@ public class AppWindow {
 	public OutputStream getOutputStream() {
 		return (output);
 	}
+	
 	/**
 	 * Initialize the contents of the frame.
 	 */
-	private void initialize() {
-		frame = new JFrame();
-		frame.setBounds(100, 100, 973, 653);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	private synchronized void initialize() {
+				frame = new JFrame();
+				frame.setBounds(100, 100, 973, 653);
+				frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
-		final JTextArea txtEnter = new JTextArea();
-		txtEnter.setFont(new Font("Monospaced", Font.PLAIN, 20));
-		txtEnter.setRows(1);
-		txtEnter.addKeyListener(new KeyAdapter() {
-			@Override
-			public void keyReleased(KeyEvent keyPress) {
-				if (keyPress.getKeyCode()==10)
-				{
-					String message = txtEnter.getText();
-					if ((message.length()>0) && (message.indexOf("/") == 0)) {
-						message = message.substring(1);	
-						cli.sendCommand(message);
-						txtEnter.setText("");
-					} else {
-						cli.sendMessage(message);
-						txtEnter.setText("");
-					}
-				}
-			}
-		});
-		txtEnter.setForeground(new Color(255, 255, 255));
-		txtEnter.setBackground(new Color(51, 51, 255));
-		txtEnter.setTabSize(20);
-		frame.getContentPane().add(txtEnter, BorderLayout.SOUTH);
-		txtChat.setFont(new Font("Tahoma", Font.PLAIN, 18));
+				final JTextArea txtEnter = new JTextArea();
+				txtEnter.setFont(new Font("Monospaced", Font.PLAIN, 20));
+				txtEnter.setRows(1);
+				txtEnter.addKeyListener(new KeyAdapter() {
+					@Override
+						public void keyReleased(KeyEvent keyPress) {
+							if (keyPress.getKeyCode()==10)
+							{
+								String message = txtEnter.getText();
+								if ((message.length()>0) && (message.indexOf("/") == 0)) {
+									message = message.substring(1);	
+									cli.sendCommand(message);
+									txtEnter.setText("");
+								} else {
+									cli.sendMessage(message);
+									txtEnter.setText("");
+								}
+							}
+						}
+				});
+				txtEnter.setForeground(new Color(255, 255, 255));
+				txtEnter.setBackground(new Color(51, 51, 255));
+				txtEnter.setTabSize(20);
+				frame.getContentPane().add(txtEnter, BorderLayout.SOUTH);
+				txtChat.setFont(new Font("Tahoma", Font.PLAIN, 18));
 		
-		txtChat.setForeground(new Color(255, 255, 240));
-		txtChat.setEditable(false);
-		txtChat.setBackground(Color.BLACK);
+				txtChat.setForeground(new Color(255, 255, 240));
+				txtChat.setEditable(false);
+				txtChat.setBackground(Color.BLACK);
 		
-		scrollPane = new JScrollPane(txtChat);
-		frame.getContentPane().add(scrollPane, BorderLayout.CENTER);
-		txtEnter.setBackground(new Color(51, 51, 255));
-		txtEnter.setTabSize(20);
-		frame.getContentPane().add(txtEnter, BorderLayout.SOUTH);
-		txtEnter.grabFocus();
-		
+				scrollPane = new JScrollPane(txtChat);
+				frame.getContentPane().add(scrollPane, BorderLayout.CENTER);
+				txtEnter.setBackground(new Color(51, 51, 255));
+				txtEnter.setTabSize(20);
+				frame.getContentPane().add(txtEnter, BorderLayout.SOUTH);
+				txtEnter.grabFocus();			
 	}
 	
-	public String askString(String question, String title) {		
-		String answer = (String)JOptionPane.showInputDialog(frame, question);
+	public String askString(String question, String title) {
+		String answer = (String) JOptionPane.showInputDialog(frame, question);
 		return answer;
 	}
 	
-	public void print(String str) {
-		
-		try {
-			doc.insertString(doc.getLength(), str, null);
-		} catch (Exception e) { 
-			System.out.println("txt Print error : " + e); 
-		}
-		txtChat.setCaretPosition(doc.getLength());	
+	public synchronized void print(final String str) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {				
+				try {
+					doc = txtChat.getDocument();
+					doc.insertString(doc.getLength(), str, null);
+				} catch (Exception e) { 
+					System.out.println("txt Print error : " + e); 
+				}
+			}
+		});
 	}
 	
-	public void println(String str) {
-		//Document doc = txtChat.getDocument();
-		try {
-			doc.insertString(doc.getLength(), str + "\n", null);
-		} catch (Exception e) {
-			System.out.println("txt Print error : " + e); 
-		}
-		txtChat.setCaretPosition(doc.getLength());
+	public synchronized void println(final String str) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {		
+				try {
+					doc = txtChat.getDocument();
+					doc.insertString(doc.getLength(), str + "\n", null);
+				} catch (Exception e) {
+					System.out.println("txt Print error : " + e); 
+				}
+				txtChat.setCaretPosition(doc.getLength());
+			}
+		});
 	}
-
 }

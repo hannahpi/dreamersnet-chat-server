@@ -16,6 +16,7 @@ package net.dreamersnet.ChatServer;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * ThreadHandler : a class that handles threads for the sockets for connected user.  These threads handle
@@ -94,11 +95,14 @@ class ThreadHandler extends Thread {
 				}
 			}			
 		} catch (IOException e) {
-			System.out.println("ThreadHandler exception occured : " + e);
+			Date d = new Date();			
+			System.out.println(d + ">>  ThreadHandler exception occured : " + e);  
+			e.printStackTrace();
 			System.out.println("Closing socket");
 			try {
 				socket.close(); 				
 				terminated = true;
+				
 			} catch (Exception e2) { 
 				System.out.println("Close socket failed" + e); 
 			}
@@ -210,12 +214,12 @@ public class Server {
 	public static void main(String[] args) {
 		int nreq = 1;
 		try {
-			ServerSocket serverSocket = new ServerSocket(4444);
+			ServerSocket serverSocket = new ServerSocket(5999);
 			for (;;) {
 				Socket socket = serverSocket.accept();				
 				Thread t = new ThreadHandler(serv, socket, ++nreq);
 				t.start();				
-				noCXNt.add((ThreadHandler) t); // need to keep it in scope ?
+				noCXNt.add((ThreadHandler) t); 
 			}
 		} catch (IOException e) {
 			System.out.println("exception occured : " + e);
@@ -264,7 +268,7 @@ public class Server {
 		tempHandle.sendMessage("SERVER", "Welcome to home.dreamersnet.net!");
 		tempHandle.sendMessage("SERVER", "This is an experiemental chat server!");
 		for (int i=0; i<toRemove.size();i++)
-			removeThread(threads.get(i));
+			removeThread(toRemove.get(i));
 		tempHandle.sendMessage("SERVER", "Just added : /msg and /me commands");
 		tempHandle.sendMessage("SERVER", "If you see a name with [PM] that indicates it is a private message");
 		
@@ -384,8 +388,10 @@ public class Server {
 				//change nick and let everyone know
 				threads.get(userThread).setUserName(words[1]);
 				sendRawToAll("*** "+ from + " is now known as " + words[1]);
-			} else {
+			} else if (userThread>0) {
 				threads.get(userThread).sendRaw("Nickname changed failed!  It appears it is already in use!");
+			} else {
+				System.out.println("Error no user found: "+ from);
 			}
 			return;
 		}

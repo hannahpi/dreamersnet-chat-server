@@ -2,6 +2,9 @@ package net.dreamersnet.ChatServer;
 import java.io.*;
 import java.net.*;
 
+
+
+
 /**
  * Client - a class to connect to the simple chat server I'm designing.
  * @author Waterlgndx
@@ -12,7 +15,7 @@ public class Client {
 	final static String DEFAULT_HOST = "home.dreamersnet.net"; 
 	final static String DEFAULT_NAME = "Anonymous";
 	static int attempts = 0;
-	final static int DEFAULT_PORT = 4444;
+	final static int DEFAULT_PORT = 5999;
 	//TODO: add a way to configure this ( Config file? ) 
 	static String name;
 	static String host;
@@ -53,27 +56,51 @@ public class Client {
 			try {
 				socket = new Socket(host, DEFAULT_PORT);
 				socket.setKeepAlive(true);
-				cli.sendRaw(name + " has connected!");				
+				cli.sendRaw(name + " has connected!");
+				final StringBuilder newLine=new StringBuilder();
+				final StringBuilder tmp=new StringBuilder();
+				BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 				while (!quit)
-				{
-					BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-					String newLine = bufferedReader.readLine().trim();
-					if (newLine.startsWith("@#!set name")) {						
-						String[] words = newLine.split(" ",3); // .split ==> ,3) means 3 positions in array are created.
-						name = words[2];
-						continue;
-					} else { 
-						app.println(newLine);
-					}					
-				}				
-			} catch (SocketException sexc) {
-				repair();
-				System.out.println("main exception has occured : " + sexc);
-				app.println("main exception has occured : " + sexc);				
-				System.exit(1);
+				{					
+						try {
+							newLine.delete(0, newLine.length());
+							tmp.delete(0,tmp.length());
+							tmp.append(bufferedReader.readLine().trim());
+							if (!tmp.toString().isEmpty())									
+								newLine.append(tmp);
+						} catch(NullPointerException e) {
+							try {
+							socket = new Socket(host, DEFAULT_PORT);
+							socket.setKeepAlive(true);
+							e.printStackTrace();
+							} catch (Exception e2) { }
+						} catch (SocketException sexc) {
+							repair();
+							System.out.println("main exception has occured : " + sexc);
+							app.println("main exception has occured : " + sexc);
+							sexc.printStackTrace();
+							System.exit(1);
+						} catch (Exception e) {
+							System.out.println("Event Main exception occured");
+						}
+						
+						if (newLine.toString().startsWith("@#!set name")) {						
+							String[] words = newLine.toString().split(" ",3); // .split ==> ,3) means 3 positions in array are created.
+							name = words[2];
+						} else { 
+							app.println(newLine.toString());
+						}
+					
+				}
+			} catch (SocketException sexc) {  // you're just gonna
+				System.out.println("Socket error, no connection could be established."); // just gonna
+				sexc.printStackTrace(); // yeah you walk away!
+				System.exit(1);  //and just walk away
 			} catch (Exception e) {
 				System.out.println("main exception has occured : " + e);
+				e.printStackTrace();
 			}
+				
 		} 
 	}
 	
@@ -100,6 +127,7 @@ public class Client {
 			printWriter.flush();
 		} catch (IOException e) {
 			app.println("Client SendMessage Error occured: " + e);
+			e.printStackTrace();
 			System.exit(1);
 		}
 	}
@@ -112,6 +140,7 @@ public class Client {
 			printWriter.flush();
 		} catch (IOException e) {
 			app.println("Client SendMessage Error occured: " + e);
+			e.printStackTrace();
 			System.exit(1);
 		}
 	}
@@ -124,6 +153,7 @@ public class Client {
 				socket.close();
 			} catch (IOException e) {
 				app.println("ClientCommand Error occured: " + e);
+				e.printStackTrace();
 				System.exit(1);
 			}		
 		} 
