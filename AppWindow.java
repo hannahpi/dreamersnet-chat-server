@@ -38,10 +38,8 @@ public class AppWindow {
 	 * Create the application.
 	 */
 	public AppWindow(Client c) {
-		//output = new PrintStream(new ChatOutput(txtChat));
 		initialize();
-		cli = c;
-		
+		cli = c;	
 	}
 
 	public OutputStream getOutputStream() {

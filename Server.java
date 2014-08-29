@@ -100,9 +100,8 @@ class ThreadHandler extends Thread {
 			e.printStackTrace();
 			System.out.println("Closing socket");
 			try {
-				socket.close(); 				
 				terminated = true;
-				
+				socket.close(); 				
 			} catch (Exception e2) { 
 				System.out.println("Close socket failed" + e); 
 			}
@@ -199,6 +198,7 @@ class ThreadHandler extends Thread {
 		terminated = true;
 		try {
 			socket.close();
+			serv.sendRawToAll(userName + " lost connection! ");
 		} catch ( Exception e) {
 			System.out.println("Error terminating socket for " + userName + ": "+ e);
 		}
@@ -312,6 +312,19 @@ public class Server {
 		threads.remove(t);
 	}
 	
+/*  Not sure if this is how I'll ever want to handle it yet.
+	private synchronized void sendTextTo(String recip, String msg) {
+		int recipId = -1;   //thread id for recipient
+		for (int i=0; i<threads.size(); i++) {
+			if (threads.get(i).isClosed())
+				continue;
+			if (threads.get(i).getUserName().compareToIgnoreCase(recip)==0)
+				recipId = i;
+		}
+		if (recipId!=-1)
+			threads.get(recipId).sendRaw(msg);
+	}
+	*/
 	private synchronized void sendNamesTo(String from) {
 		String toSend = "";
 		int nameCt = 0;
@@ -363,8 +376,12 @@ public class Server {
 				if (threads.get(i).getUserName().compareToIgnoreCase(from)==0)
 					userThread = i;
 			}
+			
 			if ( userThread >= 0 ) {
-				sendRawToAll("*** Client exiting : " + from + " with reason : " + words[1] + " " + words[2]);
+				if (words.length==2) 
+					sendRawToAll("*** Client exiting : " + from + " with reason : " + words[1]);
+				else
+					sendRawToAll("*** Client exiting : " + from + " with reason : " + words[1] + " " + words[2]);
 				threads.get(userThread).terminate();
 				threads.remove(userThread);
 			}
@@ -378,11 +395,14 @@ public class Server {
 			{
 				if (threads.get(i).isClosed())
 					continue;
-				if (threads.get(i).getUserName().compareToIgnoreCase(words[1])==0) {
-					newNickOk = false;
-				}
-				else if (threads.get(i).getUserName().compareToIgnoreCase(from)==0)
+				String other = threads.get(i).getUserName();
+				if (other.compareToIgnoreCase(from)==0) {   //allow users to change nickname to variations with case
 					userThread = i;
+					continue;
+				}
+				if (other.compareToIgnoreCase(words[1])==0) {
+					newNickOk = false;
+				}				
 			}
 			if ((newNickOk) && (userThread >= 0)) {
 				//change nick and let everyone know

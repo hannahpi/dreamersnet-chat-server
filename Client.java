@@ -39,8 +39,10 @@ public class Client {
 		}
 		
 		if (args.length==0) {
-			name = app.askString("Set Name: ", "Name");
-			host = app.askString("Connect to host? ( Press <enter> for home.dreamersnet.net ) ", "Connect");
+			String tmp = app.askString("Set Name:", "Name");
+			name = tmp.split(" ")[0];
+			tmp = app.askString("Connect to host? ( Press <enter> for home.dreamersnet.net ) ", "Connect");
+			host = tmp.split(" ")[0];
 		}
 		
 		if (name.length()==0) {
@@ -146,18 +148,21 @@ public class Client {
 	}
 	
 	public void sendCommand(String command) {
-		if (command.compareToIgnoreCase("quit")==0) {
+		
+		String[] words=command.split(" ", 2);
+		if (words[0].trim().compareToIgnoreCase("quit")==0) {
 			try {
 				sendRaw("!#@" + name + " " + command);
 				quit = true;
 				socket.close();
+				return;
 			} catch (IOException e) {
 				app.println("ClientCommand Error occured: " + e);
 				e.printStackTrace();
 				System.exit(1);
 			}		
 		} 
-		String[] words=command.split(" ", 2);
+		
 		if (words.length <= 1) {
 			sendRaw("!#@" + name + " " + command);
 			return;
