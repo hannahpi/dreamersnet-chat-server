@@ -72,10 +72,9 @@ public class Client {
 								newLine.append(tmp);
 						} catch(NullPointerException e) {
 							try {
-							socket = new Socket(host, DEFAULT_PORT);
-							socket.setKeepAlive(true);
-							e.printStackTrace();
-							} catch (Exception e2) { }
+								repair();
+								e.printStackTrace();
+							} catch (Exception e2) { 	}
 						} catch (SocketException sexc) {
 							repair();
 							System.out.println("main exception has occured : " + sexc);
@@ -110,9 +109,14 @@ public class Client {
 		if (attempts <= 10) {
 			System.out.println("Socket \n Closed: " + socket.isClosed() + "\n InputFailure: " + socket.isInputShutdown() + "\n Connected:" + socket.isConnected());
 			System.out.println("System exiting...");		
-			String[] send = (name + " "+ host).split(" ");
 			attempts++;
-			main(send);			
+			try {
+				socket = new Socket(host, DEFAULT_PORT);
+				socket.setKeepAlive(true);
+				cli.sendRaw(name + " has reconnected!");
+			} catch ( Exception e) {
+				System.out.println("Repair failed");
+			}
 		} else {
 			app.println("Number of attempts exceeds the limit!");
 			System.exit(1);

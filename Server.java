@@ -44,8 +44,11 @@ class ThreadHandler extends Thread {
 			// prime the loop and get user name and get client added to the server...
 			//Read incoming message.  In future versions it will not be important
 			BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));			
-			//PrintWriter printWriter = new PrintWriter(socket.getOutputStream(),true);
 			message = bufferedReader.readLine();
+			if (message.isEmpty()) {
+				this.terminate();
+				return;
+			}
 			if ((message.indexOf("!#@") >= 0) && (message.indexOf("!#@") < 4)) {					
 				String[] tmp = message.split("!#@",2);
 				message = tmp[1];
@@ -67,13 +70,11 @@ class ThreadHandler extends Thread {
 
 			//add me
 			serv.addMe(this); 
-			
-			
+				
 			// continue execution as normal...
 			while (!terminated) {
 				//Read incoming message.  In future versions it will not be important
 				bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));			
-				//PrintWriter printWriter = new PrintWriter(socket.getOutputStream(),true);
 				message = bufferedReader.readLine();				
 				if ((message.indexOf("!#@") >= 0) && (message.indexOf("!#@") < 4)) {					
 					String[] tmp = message.split("!#@",2);
@@ -100,7 +101,7 @@ class ThreadHandler extends Thread {
 			e.printStackTrace();
 			System.out.println("Closing socket");
 			try {
-				terminated = true;
+				terminate();
 				socket.close(); 				
 			} catch (Exception e2) { 
 				System.out.println("Close socket failed" + e); 
@@ -150,16 +151,6 @@ class ThreadHandler extends Thread {
 		sendRaw("@#!set name " + this.userName);
 	}
 	
-	/**
-	 * Deprecated
-	 * @return message
-	 * this will be removed in next update because of its unreliability.
-	 */
-	public String getMessage()
-	{
-		return message;
-	}
-	
 	public String getUserName()
 	{
 		return userName;
@@ -196,12 +187,25 @@ class ThreadHandler extends Thread {
 	public void terminate()
 	{
 		terminated = true;
-		try {
+		try {	
 			socket.close();
-			serv.sendRawToAll(userName + " lost connection! ");
+			serv.removeThread(this);
 		} catch ( Exception e) {
 			System.out.println("Error terminating socket for " + userName + ": "+ e);
 		}
+		
+		try {
+			serv.sendRawToAll(userName + " lost connection! ");
+		} catch (Exception e) {
+			System.out.println("Error sending message for "+ userName +": " + e);
+		}
+	}
+	
+	public void terminateT()
+	{
+		terminated = true;
+		serv.removeThread(this);
+		return;
 	}
 	
 }
@@ -229,8 +233,8 @@ public class Server {
 	
 	public synchronized void addMe(Thread t) {
 		ArrayList<Thread> toRemove = new ArrayList<Thread>();
-		ThreadHandler tempHandle = (ThreadHandler) t;
-		String attemptName = tempHandle.getUserName();
+		ThreadHandler newThread = (ThreadHandler) t;   //new thread
+		String attemptName = newThread.getUserName();
 		for (int i=0; i<threads.size(); i++) {
 			if (threads.get(i).isClosed()) {
 				toRemove.add(threads.get(i));
@@ -239,38 +243,39 @@ public class Server {
 			if (threads.get(i).getUserName().compareToIgnoreCase(attemptName)==0) {
 				System.out.println(attemptName + " is currently in use.");
 				//match found terminate session with reason.
-				if (threads.get(i).getSocket().getInetAddress().toString().compareToIgnoreCase(tempHandle.getSocket().getInetAddress().toString())==0) {  
+				ThreadHandler oldThread = threads.get(i);   //old thread
+				if (newThread.getSocket().getInetAddress().toString().compareToIgnoreCase(oldThread.getSocket().getInetAddress().toString())==0) {  
 					// if addresses match replace old session
-					tempHandle.sendMessage("SERVER", "This name is in use, but your host matches, replacing session.");
-					threads.get(i).sendMessage("SERVER", "We believe you have been a ghosted user, killing your session.");
-					threads.get(i).setSocket(tempHandle.getSocket());
-					tempHandle.terminate();
-					System.out.println("Username "+ attemptName + " is a duplicated nickname from host: "+ tempHandle.getSocket().getInetAddress().getHostName());
+					newThread.sendMessage("SERVER", "This name is in use, but your host matches, replacing session.");
+					oldThread.sendMessage("SERVER", "We believe you have been a ghosted user, killing your session.");
+					oldThread.setSocket(newThread.getSocket());
+					serv.removeThread(newThread);  //set the socket so we don't need newThread any more.
+					System.out.println("Username "+ attemptName + " is a duplicated nickname from host: "+ newThread.getSocket().getInetAddress().getHostName());
 					System.out.println("Server detected the host to be a match from it's previous connection so has replaced the connection with the current one");
-					noCXNt.remove(tempHandle);
+					noCXNt.remove(newThread);
 					return;
 				} else {
-					tempHandle.sendMessage("SERVER", "This name is in use!!!  You will be disconnected!!");
-					tempHandle.sendMessage("SERVER", "This name is in use!!!  You will be disconnected!!");
+					newThread.sendMessage("SERVER", "This name is in use!!!  You will be disconnected!!");
+					newThread.sendMessage("SERVER", "This name is in use!!!  You will be disconnected!!");
 					//TODO: change it so client is given a chance to change their name
 					//      or if hosts match replace the old connection with the new one.
 					//      with setSocket.
-					tempHandle.terminate();				
-					System.out.println("Username "+ attemptName + " is a duplicated nickname from host: "+ tempHandle.getSocket().getInetAddress().getHostName());
-					System.out.println("Original host is " + threads.get(i).getSocket().getInetAddress().getHostName());
-					noCXNt.remove(tempHandle);
+					newThread.terminate();				
+					System.out.println("Username "+ attemptName + " is a duplicated nickname from host: "+ newThread.getSocket().getInetAddress().getHostName());
+					System.out.println("Original host is " + oldThread.getSocket().getInetAddress().getHostName());
+					noCXNt.remove(newThread);
 					return;
 				}
 			}											
 		}
-		threads.add(tempHandle);
-		noCXNt.remove(tempHandle);
-		tempHandle.sendMessage("SERVER", "Welcome to home.dreamersnet.net!");
-		tempHandle.sendMessage("SERVER", "This is an experiemental chat server!");
+		threads.add(newThread);
+		noCXNt.remove(newThread);
+		newThread.sendMessage("SERVER", "Welcome to home.dreamersnet.net!");
+		newThread.sendMessage("SERVER", "This is an experiemental chat server!");
 		for (int i=0; i<toRemove.size();i++)
 			removeThread(toRemove.get(i));
-		tempHandle.sendMessage("SERVER", "Just added : /msg and /me commands");
-		tempHandle.sendMessage("SERVER", "If you see a name with [PM] that indicates it is a private message");
+		newThread.sendMessage("SERVER", "Just added : /msg and /me commands");
+		newThread.sendMessage("SERVER", "If you see a name with [PM] that indicates it is a private message");
 		
 		//String userName = ((ThreadHandler) t).getUserName();
 	}
@@ -416,7 +421,7 @@ public class Server {
 			return;
 		}
 		// MSG , TELL commands  (many of my friends are ex-mmo players, adding these for ease)
-		else if ((words[0].compareToIgnoreCase("msg")== 0) || (words[0].compareToIgnoreCase("tell")== 0)) {		
+		else if ((words[0].compareToIgnoreCase("msg")== 0) || (words[0].compareToIgnoreCase("tell")== 0) || (words[0].compareToIgnoreCase("t")==0)) {		
 			boolean sent = false;
 			int fromUser = -1;
 			for (int i=0; i<threads.size(); i++) {
