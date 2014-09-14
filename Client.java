@@ -29,7 +29,6 @@ public class Client {
 	
 	Client () {
 	}
-	
 		
 	public static void main(String[] args) {
 		if (args.length>0)
@@ -58,7 +57,7 @@ public class Client {
 			try {
 				socket = new Socket(host, DEFAULT_PORT);
 				socket.setKeepAlive(true);
-				cli.sendRaw(name + " has connected!");
+				cli.sendJoin();
 				final StringBuilder newLine=new StringBuilder();
 				final StringBuilder tmp=new StringBuilder();
 				BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -68,8 +67,14 @@ public class Client {
 							newLine.delete(0, newLine.length());
 							tmp.delete(0,tmp.length());
 							tmp.append(bufferedReader.readLine().trim());
-							if (!tmp.toString().isEmpty())									
+							if (!tmp.toString().isEmpty()) {
+								if (tmp.indexOf("*** JOINED") >= 0)
+									app.playEnterSound();
+								else
+									app.playMsgSound();
 								newLine.append(tmp);
+							}
+								
 						} catch(NullPointerException e) {
 							try {
 								repair();
@@ -113,7 +118,7 @@ public class Client {
 			try {
 				socket = new Socket(host, DEFAULT_PORT);
 				socket.setKeepAlive(true);
-				cli.sendRaw(name + " has reconnected!");
+				cli.sendJoin();
 			} catch ( Exception e) {
 				System.out.println("Repair failed");
 			}
@@ -148,6 +153,15 @@ public class Client {
 			app.println("Client SendMessage Error occured: " + e);
 			e.printStackTrace();
 			System.exit(1);
+		}
+	}
+	
+	public void sendJoin() {
+		try {
+			sendRaw("+++ " + name);
+		} catch (Exception e) {
+			app.println("SendJoin Error occured: " + e);
+			e.printStackTrace();
 		}
 	}
 	

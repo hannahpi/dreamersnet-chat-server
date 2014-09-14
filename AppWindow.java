@@ -2,9 +2,10 @@ package net.dreamersnet.ChatServer;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
 import java.io.OutputStream;
 import java.io.PrintStream;
-
+import javax.sound.sampled.*;
 import javax.swing.*;
 import javax.swing.text.*;
 
@@ -12,10 +13,20 @@ public class AppWindow {
 	static PrintStream output;
 	static Client cli;
 	private JFrame frame;
+	static private boolean windowActive = false;
 	static private JTextPane txtChat = new JTextPane();
 	static private Document doc = txtChat.getDocument();
 	//Style base = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
 	private JScrollPane scrollPane;
+	//private String separator= System.getProperty("file.separator");
+	private String sound1Str= "./src/sound/Electro_-S_Bainbr-7953_hifi.wav";
+	private String sound2Str= "./src/sound/polish-xrikazen-7425_hifi.wav";
+	private File file1 = new File(sound1Str);
+	private File file2 = new File(sound2Str);
+	Clip clip1;
+	Clip clip2;
+	AudioInputStream ais1;
+	AudioInputStream ais2;
 	
 	/**
 	 * Launch the application.
@@ -32,6 +43,14 @@ public class AppWindow {
 				}
 			}
 		});
+	}
+	
+	public synchronized void setActive(boolean active){
+		windowActive = active;
+	}
+	
+	public boolean isActive() {
+		return windowActive;
 	}
 	
 	/**
@@ -67,7 +86,7 @@ public class AppWindow {
 									message = message.substring(1);	
 									cli.sendCommand(message);
 									txtEnter.setText("");
-								} else {
+								} else if (message.length()>0) {
 									cli.sendMessage(message);
 									txtEnter.setText("");
 								}
@@ -89,7 +108,27 @@ public class AppWindow {
 				txtEnter.setBackground(new Color(51, 51, 255));
 				txtEnter.setTabSize(20);
 				frame.getContentPane().add(txtEnter, BorderLayout.SOUTH);
-				txtEnter.grabFocus();			
+				frame.addWindowFocusListener(new WindowAdapter() {
+				    public void windowGainedFocus(WindowEvent e) {
+				        txtEnter.requestFocusInWindow();
+				        setActive(true);
+				    }
+				});
+				frame.addWindowFocusListener(new WindowAdapter() {
+				    public void windowLostFocus(WindowEvent e) {
+				    	setActive(false);
+				    }
+				});
+				try {
+					clip1 = AudioSystem.getClip();
+					clip2 = AudioSystem.getClip();
+					ais1 = AudioSystem.getAudioInputStream(file1);
+					ais2 = AudioSystem.getAudioInputStream(file2);
+					clip1.open(ais1);
+					clip2.open(ais2);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 	}
 	
 	public String askString(String question, String title) {
@@ -123,4 +162,17 @@ public class AppWindow {
 			}
 		});
 	}
+	
+	public void playMsgSound() {
+		if (isActive() == false)
+		{
+			clip1.setFramePosition(0);
+			clip1.start();
+		}
+	}
+	
+	public void playEnterSound() {
+		clip2.start();
+	}
+	
 }

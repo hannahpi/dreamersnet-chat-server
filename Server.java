@@ -49,14 +49,18 @@ class ThreadHandler extends Thread {
 				this.terminate();
 				return;
 			}
-			if ((message.indexOf("!#@") >= 0) && (message.indexOf("!#@") < 4)) {					
+			if ((message.indexOf("!#@") >= 0) && (message.indexOf("!#@") < 4)) {	//this might now be deprecated					
 				String[] tmp = message.split("!#@",2);
 				message = tmp[1];
 				String[] tmp2 = message.split(" ",2);
 				userName = tmp2[0];
 				message = tmp2[1];
 				serv.sendCommand(userName, message);
-			} else {
+			} else if ((message.indexOf("+++") >= 0) && (message.indexOf("+++") <4)) {
+				String[] tmp = message.split(" ",2);
+				userName = tmp[1];
+			}
+			else {
 				String[] tmp = message.split(" ",2);
 				userName = tmp[0];
 				message = tmp[1];
@@ -76,14 +80,14 @@ class ThreadHandler extends Thread {
 				//Read incoming message.  In future versions it will not be important
 				bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));			
 				message = bufferedReader.readLine();				
-				if ((message.indexOf("!#@") >= 0) && (message.indexOf("!#@") < 4)) {					
+				if ((message.indexOf("!#@") >= 0) && (message.indexOf("!#@") < 4)) {  //this might now be deprecated					
 					String[] tmp = message.split("!#@",2);
 					message = tmp[1];
 					String[] tmp2 = message.split(" ",2);
 					userName = tmp2[0];
 					message = tmp2[1];
 					serv.sendCommand(userName, message);
-				} else {
+				}  else {
 					String[] tmp = message.split(" ",2);
 					userName = tmp[0];
 					message = tmp[1];
@@ -218,6 +222,7 @@ public class Server {
 	public static void main(String[] args) {
 		int nreq = 1;
 		try {
+			@SuppressWarnings("resource")
 			ServerSocket serverSocket = new ServerSocket(5999);
 			for (;;) {
 				Socket socket = serverSocket.accept();				
@@ -258,8 +263,6 @@ public class Server {
 					newThread.sendMessage("SERVER", "This name is in use!!!  You will be disconnected!!");
 					newThread.sendMessage("SERVER", "This name is in use!!!  You will be disconnected!!");
 					//TODO: change it so client is given a chance to change their name
-					//      or if hosts match replace the old connection with the new one.
-					//      with setSocket.
 					newThread.terminate();				
 					System.out.println("Username "+ attemptName + " is a duplicated nickname from host: "+ newThread.getSocket().getInetAddress().getHostName());
 					System.out.println("Original host is " + oldThread.getSocket().getInetAddress().getHostName());
@@ -276,8 +279,7 @@ public class Server {
 			removeThread(toRemove.get(i));
 		newThread.sendMessage("SERVER", "Just added : /msg and /me commands");
 		newThread.sendMessage("SERVER", "If you see a name with [PM] that indicates it is a private message");
-		
-		//String userName = ((ThreadHandler) t).getUserName();
+		sendRawToAll("*** JOINED: " + newThread.getUserName() + " is now connected and is chatting!");
 	}
 	
 	public synchronized void sendToAll(Thread t, String msg)
@@ -317,19 +319,6 @@ public class Server {
 		threads.remove(t);
 	}
 	
-/*  Not sure if this is how I'll ever want to handle it yet.
-	private synchronized void sendTextTo(String recip, String msg) {
-		int recipId = -1;   //thread id for recipient
-		for (int i=0; i<threads.size(); i++) {
-			if (threads.get(i).isClosed())
-				continue;
-			if (threads.get(i).getUserName().compareToIgnoreCase(recip)==0)
-				recipId = i;
-		}
-		if (recipId!=-1)
-			threads.get(recipId).sendRaw(msg);
-	}
-	*/
 	private synchronized void sendNamesTo(String from) {
 		String toSend = "";
 		int nameCt = 0;
