@@ -28,9 +28,11 @@ public class AppWindow {
 	static private boolean windowActive = false;
 	static private JTextPane txtChat = new JTextPane();
 	static private Document doc = txtChat.getDocument();
+	//Style base = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
 	private JScrollPane scrollPane;
-	private String sound1Str= "/sound/Electro_-S_Bainbr-7953_hifi.wav";
-	private String sound2Str= "/sound/polish-xrikazen-7425_hifi.wav";
+	//private String separator= System.getProperty("file.separator");
+	private String sound1Str= "Electro_-S_Bainbr-7953_hifi.wav";
+	private String sound2Str= "polish-xrikazen-7425_hifi.wav";
 	private URL file1 = AppWindow.class.getResource(sound1Str);
 	private URL file2 = AppWindow.class.getResource(sound2Str);
 	Clip clip1;

@@ -63,6 +63,7 @@ class ThreadHandler extends Thread {
 			} else if ((message.indexOf("+++") >= 0) && (message.indexOf("+++") <4)) {
 				String[] tmp = message.split(" ",2);
 				userName = tmp[1];
+				serv.sendRawToAll("*** JOINED: " + userName + " is now connected and chatting!");
 			}
 			else {
 				String[] tmp = message.split(" ",2);
