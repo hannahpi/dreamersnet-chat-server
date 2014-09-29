@@ -1,13 +1,25 @@
 package net.dreamersnet.ChatServer;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.io.File;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.EventQueue;
+import java.awt.Font;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import javax.sound.sampled.*;
-import javax.swing.*;
-import javax.swing.text.*;
+import java.net.URL;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextPane;
+import javax.swing.text.Document;
 
 public class AppWindow {
 	static PrintStream output;
@@ -16,13 +28,11 @@ public class AppWindow {
 	static private boolean windowActive = false;
 	static private JTextPane txtChat = new JTextPane();
 	static private Document doc = txtChat.getDocument();
-	//Style base = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
 	private JScrollPane scrollPane;
-	//private String separator= System.getProperty("file.separator");
-	private String sound1Str= "./src/sound/Electro_-S_Bainbr-7953_hifi.wav";
-	private String sound2Str= "./src/sound/polish-xrikazen-7425_hifi.wav";
-	private File file1 = new File(sound1Str);
-	private File file2 = new File(sound2Str);
+	private String sound1Str= "/sound/Electro_-S_Bainbr-7953_hifi.wav";
+	private String sound2Str= "/sound/polish-xrikazen-7425_hifi.wav";
+	private URL file1 = AppWindow.class.getResource(sound1Str);
+	private URL file2 = AppWindow.class.getResource(sound2Str);
 	Clip clip1;
 	Clip clip2;
 	AudioInputStream ais1;
