@@ -23,84 +23,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
-/**
- * ServerObject : a class that allows clients to create an object for users to interact with.
- * 
- * @author Ben Parker
- */
-class ServerObject {
-	Server serv;
-	HashMap<String, Object> property = new HashMap<String, Object>(); // allows custom properties
-	String itemName = new String ("SO");
-	String desc = new String ("Newly Created Object");
-	String creator = new String(" ");
-	boolean destroyed=false;
-	int health = 100;
-	int durability = 1;
-	int dmg = 0;
-	int delay = 0;
-	
-	ServerObject(Server serv, String itemName, String creator) {
-		this.serv = serv;
-		this.itemName= itemName;
-		this.creator=creator;
-	}
-	
-	ServerObject(Server serv, String itemName, String creator, String desc ) {
-		this.serv = serv;
-		this.itemName = itemName;
-		this.desc = desc;
-		this.creator = creator;
-	}
-	
-	void setStat(int health, int durability, int dmg, int delay) {
-		this.health= health;
-		this.durability = durability;
-		this.dmg = dmg;
-		this.delay = delay;
-	}
-	
-	int calcDamage() {
-		return dmg/durability;
-	}
-	
-	void takeDamage(int baseDmg) {
-		health -= baseDmg/durability;
-		if (health<=0)
-		{
-			health = 0;
-			destroyed = true;
-		}
-	}
-	
-	String getStat(){
-		String tmp = "Health: " + this.health + " Durability: " + this.durability + " Damage: " + this.dmg + " Delay: " + this.delay;
-		return tmp;
-	}
-	
-	String getDesc(){
-		if (this.destroyed)
-			return "a destroyed " + this.desc;
-		else
-			return this.desc;
-	}
-	
-	String getName() {
-		return this.itemName;
-	}
-	
-	String getCreator() {
-		return this.creator;
-	}
-	
-	void addProperty(String str, Object obj) {
-		property.put(str, obj);
-	}
-	
-	boolean isUsable(){
-		return !(this.destroyed);
-	}
-}
 
 
 /**
@@ -342,7 +264,7 @@ public class Server {
 		{
 			System.out.println(attemptName + " is currently in use.");
 			//match found terminate session with reason.
-			ThreadHandler oldThread = threads.get(attemptName);   //old thread
+			ThreadHandler oldThread = threads.get(attemptName.toLowerCase());   //old thread
 			if (newThread.equals(oldThread)) {  
 				// if addresses match replace old session
 				newThread.sendMessage("SERVER", "This name is in use, but your host matches, replacing session.");
@@ -364,7 +286,7 @@ public class Server {
 				return;
 			}
 		}											
-		threads.put(newThread.getUserName(), newThread);
+		threads.put(newThread.getUserName().toLowerCase(), newThread);
 		noCXNt.remove(newThread);
 		newThread.sendMessage("SERVER", "Welcome to home.dreamersnet.net!");
 		newThread.sendMessage("SERVER", "This is an experiemental chat server!");
@@ -372,7 +294,7 @@ public class Server {
 			removeThread(toRemove.get(i));
 		newThread.sendMessage("SERVER", "Just added : /create <obj> <desc> ; /look [item] ; /destroy <ownObject> ");
 		newThread.sendMessage("SERVER", "If you see a name with [PM] that indicates it is a private message");
-		newThread.sendMessage("SERVER", "Supported Commands: /me /emote /msg /tell /t /create /destroy /look /help /?");
+		newThread.sendMessage("SERVER", "Supported Commands: /me /emote /msg /tell /t /create /destroy /look /help /nickname /nick /?");
 		sendRawToAll("*** JOINED: " + newThread.getUserName() + " is now connected and is chatting!");
 	}
 	
@@ -412,9 +334,10 @@ public class Server {
 	private synchronized void sendNamesTo(String from) {
 		String toSend = new String();
 		int nameCt = 0;
+		from = from.toLowerCase();
 		if (threads.containsKey(from))
 		{
-			ThreadHandler thFrom = threads.get(from);
+			ThreadHandler thFrom = threads.get(from.toLowerCase());
 		
 			if (thFrom.isClosed())
 				return;	
@@ -423,9 +346,9 @@ public class Server {
 			String[] users = new String[threads.size()];
 			users = threads.keySet().toArray(users);
 			for (String user:users){
-				if (threads.get(user).isClosed())
+				if (threads.get(user.toLowerCase()).isClosed())
 					continue;
-				toSend += " " + user;
+				toSend += " " + threads.get(user.toLowerCase()).getUserName();
 				nameCt++;
 			}
 			thFrom.sendRaw("* There are "+ nameCt + " users logged in : " + toSend);		
@@ -451,7 +374,7 @@ public class Server {
 		
 		// ?, HELP commands
 		if ((command.compareToIgnoreCase("help")==0) || (command.compareTo("?")==0)) {
-			ThreadHandler userThread = threads.get(from);
+			ThreadHandler userThread = threads.get(from.toLowerCase());
 			
 			if (userThread != null)
 			{				
@@ -462,6 +385,7 @@ public class Server {
 				userThread.sendRaw("CREATE OBJECT: /create <object> <description>");
 				userThread.sendRaw("DESTROY OBJECT: /destroy <ownObject> ");
 				userThread.sendRaw("LOOK (all or item): /look [item]");
+				userThread.sendRaw("CHANGE NICKNAME: /nickname <newName> (alias /nick);");
 				userThread.sendRaw("Note: <parameter> , [optional parameter] ");
 			}
 			return;
@@ -469,7 +393,7 @@ public class Server {
 		
 		// QUIT command
 		if (command.compareToIgnoreCase("quit")==0) {
-			ThreadHandler userThread = threads.get(from);
+			ThreadHandler userThread = threads.get(from.toLowerCase());
 			
 			if ( userThread != null ) {
 				sendRawToAll("*** Client exiting : " + from);
@@ -480,7 +404,7 @@ public class Server {
 		}
 		
 		if (command.compareToIgnoreCase("look")==0) {
-			final ThreadHandler userThread = threads.get(from);
+			final ThreadHandler userThread = threads.get(from.toLowerCase());
 						
 			if (sobj.isEmpty())
 				userThread.sendRaw("No items yet!");
@@ -506,7 +430,7 @@ public class Server {
 		{
 			ServerObject so = sobj.get(words[1]);
 			
-			ThreadHandler userThread = threads.get(from);
+			ThreadHandler userThread = threads.get(from.toLowerCase());
 			if (so == null && userThread != null) {
 				userThread.sendRaw("No such object!");				
 			} else if (userThread != null) {
@@ -516,7 +440,7 @@ public class Server {
 		}
 		if (words[0].compareToIgnoreCase("destroy")==0) {
 			ServerObject so = sobj.get(words[1]);
-			ThreadHandler userThread = threads.get(from);
+			ThreadHandler userThread = threads.get(from.toLowerCase());
 			
 			if (so.getCreator().compareToIgnoreCase(from)==0) {
 				sobj.remove(words[1]);
@@ -530,7 +454,7 @@ public class Server {
 		if (words[0].compareToIgnoreCase("stats")==0)
 		{
 			ServerObject so = sobj.get(words[1]);
-			ThreadHandler userThread = threads.get(from);
+			ThreadHandler userThread = threads.get(from.toLowerCase());
 			if (userThread != null) {
 				userThread.sendRaw("You inspect " + so.getName() + " it is " + so.getDesc() );
 				userThread.sendRaw("Further inspection reveals its stats...");
@@ -541,7 +465,7 @@ public class Server {
 		
 		// QUIT with parameters
 		if (words[0].compareToIgnoreCase("quit")==0) {
-			ThreadHandler userThread = threads.get(from);
+			ThreadHandler userThread = threads.get(from.toLowerCase());
 			
 			
 			if ( userThread != null ) {
@@ -558,23 +482,22 @@ public class Server {
 		// NICK, NICKNAME command
 		if ((words[0].compareToIgnoreCase("nickname")==0)||(words[0].compareToIgnoreCase("nick")==0)) {
 			boolean newNickOk = true;
-			ThreadHandler userThread = threads.get(from);
-			String[] users = (String[]) threads.keySet().toArray();
-			String other = userThread.getUserName();
-			if (other.compareToIgnoreCase(from)!=0) {
-				for (String user: users)				
-				{
-					if (threads.get(user).isClosed())
-						continue;
-					if (user.compareToIgnoreCase(from)==0) {
-						newNickOk = false;
-					}		
-				}
+			ThreadHandler userThread = threads.get(from.toLowerCase());
+			String[] users = new String[threads.size()];
+			users = threads.keySet().toArray(users);
+			String attemptName = words[1];
+			if (attemptName.compareToIgnoreCase(from)==0) {
+				userThread.setUserName(attemptName);
+				sendRawToAll("*** "+ from + " is now known as " + attemptName);
+				return;
 			}
-			
+			if (threads.containsKey(attemptName.toLowerCase()) && (attemptName.compareToIgnoreCase(from)!=0))
+				newNickOk=false;
 			if ((newNickOk) && (userThread != null)) {
 				//change nick and let everyone know
-				userThread.setUserName(words[1]);
+				userThread.setUserName(attemptName);
+				threads.put(userThread.getUserName().toLowerCase(), userThread);
+				threads.remove(from.toLowerCase());				
 				sendRawToAll("*** "+ from + " is now known as " + words[1]);
 			} else if (!newNickOk) {
 				userThread.sendRaw("Nickname changed failed!  It appears it is already in use!");
@@ -587,9 +510,9 @@ public class Server {
 		// MSG , TELL commands  (many of my friends are ex-mmo players, adding these for ease)
 		else if ((words[0].compareToIgnoreCase("msg")== 0) || (words[0].compareToIgnoreCase("tell")== 0) || (words[0].compareToIgnoreCase("t")==0)) {		
 			boolean sent = false;
-			ThreadHandler fromUser = threads.get(from);
+			ThreadHandler fromUser = threads.get(from.toLowerCase());
 			if (threads.containsKey(words[1])) {
-				threads.get(words[1]).sendMessage("[PM] "+ from, words[2]);
+				threads.get(words[1].toLowerCase()).sendMessage("[PM] "+ from, words[2]);
 				sent = true;
 			}
 			
