@@ -67,8 +67,7 @@ class ThreadHandler extends Thread {
 				String[] tmp = message.split(" ",2);
 				userName = tmp[1];
 				serv.sendRawToAll("*** JOINED: " + userName + " is now connected and chatting!");
-			}
-			else {
+			} else {
 				String[] tmp = message.split(" ",2);
 				userName = tmp[0];
 				message = tmp[1];
@@ -95,6 +94,10 @@ class ThreadHandler extends Thread {
 					userName = tmp2[0];
 					message = tmp2[1];
 					serv.sendCommand(userName, message);
+				} else if ((message.indexOf("[#]") >= 0) && (message.indexOf("[#]") < 4)) {
+					String[] tmp = message.split(" ", 2);
+					userName = tmp[1];
+					serv.sendRawNames(userName);
 				}  else {
 					String[] tmp = message.split(" ",2);
 					userName = tmp[0];
@@ -125,6 +128,16 @@ class ThreadHandler extends Thread {
 	public Socket getSocket()
 	{
 		return socket;
+	}
+	
+	public void closeSocket()
+	{
+		try {
+			socket.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public void setSocket(Socket s) {
@@ -206,12 +219,14 @@ class ThreadHandler extends Thread {
 		try {	
 			socket.close();
 			serv.removeThread(this);
+			serv.sendRawNamesAll();
 		} catch ( Exception e) {
 			System.out.println("Error terminating socket for " + userName + ": "+ e);
 		}
 		
 		try {
 			serv.sendRawToAll(userName + " lost connection! ");
+			serv.sendRawNamesAll();
 		} catch (Exception e) {
 			System.out.println("Error sending message for "+ userName +": " + e);
 		}
@@ -221,6 +236,7 @@ class ThreadHandler extends Thread {
 	{
 		terminated = true;
 		serv.removeThread(this);
+		serv.sendRawNamesAll();
 		return;
 	}
 	
@@ -237,6 +253,7 @@ public class Server {
 		try {
 			@SuppressWarnings("resource")
 			ServerSocket serverSocket = new ServerSocket(5999);
+			System.out.println("Server is now listening from " + serverSocket.getInetAddress().toString() + " on " + serverSocket.getLocalPort());
 			for (;;) {
 				Socket socket = serverSocket.accept();				
 				Thread t = new ThreadHandler(serv, socket, ++nreq);
@@ -355,6 +372,42 @@ public class Server {
 		}						
 	}
 	
+	public synchronized void sendRawNames(String from) {
+		String toSend = new String();		
+		from = from.toLowerCase();
+		if (threads.containsKey(from))
+		{
+			ThreadHandler thFrom = threads.get(from.toLowerCase());
+		
+			if (thFrom.isClosed())
+				return;	
+			
+			//create list of users
+			String[] users = new String[threads.size()];
+			users = threads.keySet().toArray(users);
+			for (String user:users){
+				if (threads.get(user.toLowerCase()).isClosed())
+					continue;
+				toSend += " " + threads.get(user.toLowerCase()).getUserName();
+			}
+			thFrom.sendRaw("[#] " + toSend);		
+		}
+	}
+	
+	public synchronized void sendRawNamesAll() {
+		String toSend = new String();		
+		
+		//create list of users
+		String[] users = new String[threads.size()];
+		users = threads.keySet().toArray(users);
+		for (String user:users){
+			if (threads.get(user.toLowerCase()).isClosed())
+				continue;
+			toSend += " " + threads.get(user.toLowerCase()).getUserName();
+		}
+		serv.sendRawToAll("[#] " + toSend);		
+	}
+	
 	public synchronized void createObject(String itemName, String from, String desc )
 	{
 		ServerObject so = new ServerObject(this, itemName, from, desc) ;
@@ -398,6 +451,7 @@ public class Server {
 			if ( userThread != null ) {
 				sendRawToAll("*** Client exiting : " + from);
 				userThread.terminate();
+				userThread.closeSocket();
 				threads.remove(from);
 			}
 			return;				

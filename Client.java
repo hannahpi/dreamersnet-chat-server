@@ -72,9 +72,11 @@ public class Client {
 							tmp.delete(0,tmp.length());
 							tmp.append(bufferedReader.readLine().trim());
 							if (!tmp.toString().isEmpty()) {
-								if (tmp.indexOf("*** JOINED") >= 0)
-									app.playEnterSound();
-								else
+								if (tmp.indexOf("*** JOINED") >= 0) {
+									cli.sendNamesRequest();
+									app.playEnterSound(); 
+								}
+								else 
 									app.playMsgSound();
 								newLine.append(tmp);
 							}
@@ -97,15 +99,18 @@ public class Client {
 						if (newLine.toString().startsWith("@#!set name")) {						
 							String[] words = newLine.toString().split(" ",3); // .split ==> ,3) means 3 positions in array are created.
 							name = words[2];
+						} else if (newLine.toString().startsWith("[#]")) {							
+							String[] words = newLine.toString().split(" ",2); 
+							String[] users = words[1].split(" ");
+							app.setNames(users);
 						} else { 
 							app.println(newLine.toString());
 						}
-					
 				}
-			} catch (SocketException sexc) {  // you're just gonna
-				System.out.println("Socket error, no connection could be established."); // just gonna
-				sexc.printStackTrace(); // yeah you walk away!
-				System.exit(1);  //and just walk away
+			} catch (SocketException sexc) {  
+				System.out.println("Socket error, no connection could be established."); 
+				sexc.printStackTrace(); 
+				System.exit(1);  
 			} catch (Exception e) {
 				System.out.println("main exception has occured : " + e);
 				e.printStackTrace();
@@ -115,6 +120,7 @@ public class Client {
 	}
 	
 	private static void repair() {
+		if (quit) return;
 		if (attempts <= 10) {
 			System.out.println("Socket \n Closed: " + socket.isClosed() + "\n InputFailure: " + socket.isInputShutdown() + "\n Connected:" + socket.isConnected());
 			System.out.println("System exiting...");		
@@ -165,6 +171,15 @@ public class Client {
 			sendRaw("+++ " + name);
 		} catch (Exception e) {
 			app.println("SendJoin Error occured: " + e);
+			e.printStackTrace();
+		}
+	}
+	
+	public void sendNamesRequest() {
+		try {
+			sendRaw("[#] " + name);
+		} catch (Exception e) {
+			app.println("SendNamesRequest Error occured: " + e);
 			e.printStackTrace();
 		}
 	}

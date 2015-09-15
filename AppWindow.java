@@ -15,6 +15,7 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.swing.JFrame;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -28,6 +29,8 @@ public class AppWindow {
 	static private boolean windowActive = false;
 	static private JTextPane txtChat = new JTextPane();
 	static private Document doc = txtChat.getDocument();
+	static private JList<String> lstUsers = new JList<String>();
+	private String[] users = new String[30];
 	private JScrollPane scrollPane;
 	private String sound1Str= "Electro_-S_Bainbr-7953_hifi.wav";
 	private String sound2Str= "polish-xrikazen-7425_hifi.wav";
@@ -106,6 +109,13 @@ public class AppWindow {
 				txtEnter.setForeground(new Color(255, 255, 255));
 				txtEnter.setBackground(new Color(51, 51, 255));
 				txtEnter.setTabSize(20);
+				
+				lstUsers.setFont(new Font("Monospaced",Font.PLAIN, 20));
+				lstUsers.setListData(users);				
+				lstUsers.setForeground(new Color(255,255,255));
+				lstUsers.setBackground(new Color(0,0,0));
+				
+				frame.getContentPane().add(lstUsers, BorderLayout.EAST);
 				frame.getContentPane().add(txtEnter, BorderLayout.SOUTH);
 				txtChat.setFont(new Font("Tahoma", Font.PLAIN, 18));
 		
@@ -183,6 +193,11 @@ public class AppWindow {
 	
 	public void playEnterSound() {
 		clip2.start();
+	}
+	
+	public void setNames(String[] newList) {
+		this.users = newList;
+		lstUsers.setListData(users);
 	}
 	
 }
