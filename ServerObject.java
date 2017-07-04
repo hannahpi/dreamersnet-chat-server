@@ -76,6 +76,10 @@ class ServerObject {
 		property.put(str, obj);
 	}
 	
+	String getProperty(String str) {
+		return property.get(str).toString();
+	}
+	
 	boolean isUsable(){
 		return !(this.destroyed);
 	}

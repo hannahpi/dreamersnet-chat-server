@@ -565,9 +565,11 @@ public class Server {
 		else if ((words[0].compareToIgnoreCase("msg")== 0) || (words[0].compareToIgnoreCase("tell")== 0) || (words[0].compareToIgnoreCase("t")==0)) {		
 			boolean sent = false;
 			ThreadHandler fromUser = threads.get(from.toLowerCase());
-			if (threads.containsKey(words[1])) {
+			if (threads.containsKey(words[1].toLowerCase())) {
 				threads.get(words[1].toLowerCase()).sendMessage("[PM] "+ from, words[2]);
 				sent = true;
+			} else if (fromUser!= null){
+				fromUser.sendRaw("User " + words[1] + " not found");
 			}
 			
 			if ((fromUser != null) && sent) {
